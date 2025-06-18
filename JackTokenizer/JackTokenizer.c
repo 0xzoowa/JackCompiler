@@ -6,7 +6,8 @@
 #define MAX_TOKEN_LENGTH 256
 #define KEYWORDS 21
 static FILE *input = NULL;
-static char current_token;
+static char current_char = NULL;
+static char current_token = NULL;
 static char *input_string = NULL;
 static int input_index = 0;
 
@@ -39,40 +40,51 @@ bool has_more_tokens()
 
 void advance()
 {
+
+    /**
+     * while(true) {
+     * let or var car = "benz";
+     * }
+     */
+
     do
     {
         int ch;
         ch = fgetc(input);
         if (ch == EOF)
         {
-            current_token = '\0';
+            current_char = '\0';
             return;
         }
+        current_char = (char)ch;
+        set_current_token();
+        // skip comments : turn comments to null '\0'
 
-        if (!isspace(ch))
-        {
-            current_token = (char)ch;
-        }
-        else
-        {
-            current_token = '\0';
-        }
-        current_token = (char)ch;
-
-    } while (current_token == '\0');
+    } while (current_char == '\0' && current_token == '\0');
 }
 
 static void build_input_string()
 {
     if (input_index < MAX_TOKEN_LENGTH - 1)
     {
-        input_string[input_index++] = current_token;
+        input_string[input_index++] = current_char;
         input_string[input_index] = '\0';
     }
     else
     {
         fprintf(stderr, "Token too long. Truncating.\n");
     }
+}
+
+static void set_current_token()
+{
+    reset_input_string();
+    while (!isspace(current_char) || !is_jack_symbol(current_char))
+    {
+        build_input_string();
+        advance();
+    }
+    current_token = input_string; // check that current token is not null
 }
 
 void reset_input_string()
@@ -90,7 +102,7 @@ static bool is_jack_symbol()
 
     for (int i = 0; jack_symbols[i] != '\0'; i++)
     {
-        if (jack_symbols[i] == current_token)
+        if (jack_symbols[i] == current_char)
             return true;
     }
     return false;
@@ -141,26 +153,10 @@ static bool is_jack_integer_constant()
 tokenType token_type()
 {
 
-    /**
-     * while(true) {
-     * let or var car = "benz";
-     * }
-     *
-     * int_const => 1,2,3,4,5,6,7,8,9,0
-     */
-
-    if (is_jack_symbol(current_token))
+    // if it is a symbol access via current character
+    if (is_jack_symbol(current_char))
     {
         return SYMBOL;
     }
-    int jack_int[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    for (int j = 0; current_token != '\0' && j < sizeof(jack_int) / sizeof(jack_int[0]); j++)
-    {
-        if (jack_int[j] == (int)current_token)
-            return INT_CONST;
-    }
-    if (strcmp(current_token, "\"") == 0)
-        return STRING_CONST;
-
-    // todo: identifier and keyword
+    // else build out string and access via current token
 }
