@@ -1,6 +1,7 @@
 {
     "files.associations": {
         ".fantomasignore": "ignore",
-        "utils.h": "c"
+        "utils.h": "c",
+        "dirent.h": "c"
     }
 }

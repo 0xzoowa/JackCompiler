@@ -1,3 +1,10 @@
+/**
+ * creates a JackTokenizer from the Xxx.jack input file;
+ * creates an output file named Xxx.xml; and
+ * uses the JackTokenizer and the CompilationEngine to parse the input file and write the parsed code to the output file.
+ *      => the process method will handle this
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -12,6 +19,8 @@
 
 char out_file[MAX_CHAR];
 char path[PATH_MAX];
+
+void process();
 
 int main(int argc, char *argv[])
 {
@@ -33,14 +42,13 @@ int main(int argc, char *argv[])
 
         // construct output file with the specified extension
         char *filename = remove_extension(input);
-        snprintf(out_file, sizeof(out_file), "%s.xml", filename);
+        snprintf(out_file, sizeof(out_file), "%sT.xml", filename);
 
         // process(input)
     }
     else
     {
         struct dirent *entry;
-        snprintf(out_file, sizeof(out_file), "%s/%s.xml", input, get_filename_without_extension(input));
 
         while ((entry = readdir(dir)) != NULL)
         {
@@ -54,9 +62,12 @@ int main(int argc, char *argv[])
             {
                 continue;
             }
+            snprintf(out_file, sizeof(out_file), "%s/%sT.xml", input, remove_extension(entry->d_name));
             // process(path);
         }
         closedir(dir);
     }
     return 0;
 }
+
+void process() {}
