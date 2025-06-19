@@ -18,6 +18,7 @@
 #define MAX_CHAR 256
 
 char out_file[MAX_CHAR];
+char outT_file[MAX_CHAR];
 char path[PATH_MAX];
 
 void process();
@@ -42,7 +43,8 @@ int main(int argc, char *argv[])
 
         // construct output file with the specified extension
         char *filename = remove_extension(input);
-        snprintf(out_file, sizeof(out_file), "%sT.xml", filename);
+        snprintf(outT_file, sizeof(out_file), "%sT.xml", filename);
+        snprintf(out_file, sizeof(out_file), "%s.xml", filename);
 
         // process(input)
     }
@@ -62,7 +64,8 @@ int main(int argc, char *argv[])
             {
                 continue;
             }
-            snprintf(out_file, sizeof(out_file), "%s/%sT.xml", input, remove_extension(entry->d_name));
+            snprintf(outT_file, sizeof(out_file), "%s/%sT.xml", input, remove_extension(entry->d_name));
+            snprintf(out_file, sizeof(out_file), "%s/%s.xml", input, remove_extension(entry->d_name));
             // process(path);
         }
         closedir(dir);

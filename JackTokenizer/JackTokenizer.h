@@ -9,7 +9,8 @@ typedef enum typeOfToken
     SYMBOL,
     IDENTIFIER,
     INT_CONST,
-    STRING_CONST
+    STRING_CONST,
+    INVALID_TYPE
 } tokenType;
 
 typedef enum typeOfKeyword

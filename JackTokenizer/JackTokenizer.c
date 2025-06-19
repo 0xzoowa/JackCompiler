@@ -2,14 +2,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #define MAX_TOKEN_LENGTH 256
 #define KEYWORDS 21
 static FILE *input = NULL;
+static FILE *outT = NULL;
 static char current_char = NULL;
-static char current_token = NULL;
+static char *current_token = NULL;
 static char *input_string = NULL;
 static int input_index = 0;
+
+static int peek_char();
+static void set_current_token();
+static bool handle_symbol();
+static bool handle_keyword();         // todo
+static bool handle_identifier();      // todo
+static bool handle_string_constant(); // todo
+static bool handle_integer_constant();
 
 void tokenizer_create(const char *filename)
 {
@@ -19,6 +29,13 @@ void tokenizer_create(const char *filename)
         fprintf(stderr, "Error: Cannot open file %s\n", filename);
         exit(EXIT_FAILURE);
     }
+    outT = fopen(filename, "w");
+    if (outT == NULL)
+    {
+        fprintf(stderr, "Error: Could not create output file %s\n", filename);
+        exit(EXIT_FAILURE);
+    }
+    fprintf(outT, "<tokens>");
 }
 void tokenizer_destroy(void)
 {
@@ -27,6 +44,7 @@ void tokenizer_destroy(void)
         fclose(input);
         input = NULL;
     }
+    fprintf(outT, "</tokens>");
 }
 bool has_more_tokens()
 {
@@ -40,27 +58,42 @@ bool has_more_tokens()
 
 void advance()
 {
-
-    /**
-     * while(true) {
-     * let or var car = "benz";
-     * }
-     */
-
-    do
+    while (1)
     {
-        int ch;
-        ch = fgetc(input);
+        int ch = fgetc(input);
         if (ch == EOF)
         {
             current_char = '\0';
             return;
         }
-        current_char = (char)ch;
-        set_current_token();
-        // skip comments : turn comments to null '\0'
 
-    } while (current_char == '\0' && current_token == '\0');
+        // Skip comments
+        if (ch == '/')
+        {
+            int next = peek_char();
+            if (next == '/')
+            {
+                while ((ch = fgetc(input)) != '\n' && ch != EOF)
+                    ;
+                continue;
+            }
+            if (next == '*')
+            {
+                fgetc(input);
+                int prev = 0;
+                while ((ch = fgetc(input)) != EOF)
+                {
+                    if (prev == '*' && ch == '/')
+                        break;
+                    prev = ch;
+                }
+                continue;
+            }
+        }
+
+        current_char = (char)ch;
+        return;
+    }
 }
 
 static void build_input_string()
@@ -79,12 +112,12 @@ static void build_input_string()
 static void set_current_token()
 {
     reset_input_string();
-    while (!isspace(current_char) || !is_jack_symbol(current_char))
+    while (!isspace(current_char) && !is_jack_symbol(current_char))
     {
         build_input_string();
         advance();
     }
-    current_token = input_string; // check that current token is not null
+    current_token = strdup(input_string); // check that current token is not null
 }
 
 void reset_input_string()
@@ -93,7 +126,7 @@ void reset_input_string()
     input_string[0] = '\0';
 }
 
-static bool is_jack_symbol()
+static bool handle_symbol()
 {
     char jack_symbols[] = {
         '{', '}', '(', ')', '[', ']', '.', ',', ';',
@@ -108,8 +141,9 @@ static bool is_jack_symbol()
     return false;
 }
 
-static bool is_jack_keyword(char *key)
+static bool handle_keyword()
 {
+    char *key = "test";
 
     const char *jack_keywords[KEYWORDS] = {"class",
                                            "method",
@@ -142,21 +176,65 @@ static bool is_jack_keyword(char *key)
     }
     return false;
 }
-static bool is_jack_identifier() {}
-static bool is_jack_string_constant()
+static bool handle_identifier()
+{
+    /**
+     * we already have the first character stored in current char
+     * build out string
+     * parse string and check if it aligns with rule logic
+     */
+}
+static bool handle_string_constant()
 {
 }
-static bool is_jack_integer_constant()
+static bool handle_integer_constant()
 {
+
+    if (!isdigit((unsigned char)current_char))
+    {
+        return false;
+    }
+    set_current_token();
+    for (int i = 0; current_token[i] != '\0'; i++)
+    {
+        if (!isdigit((unsigned char)current_token[i]))
+            return false;
+    }
+    return true;
 }
 
 tokenType token_type()
 {
 
-    // if it is a symbol access via current character
-    if (is_jack_symbol(current_char))
+    if (handle_symbol())
     {
         return SYMBOL;
     }
-    // else build out string and access via current token
+    else if (handle_identifier())
+    {
+        return IDENTIFIER;
+    }
+    else if (handle_keyword())
+    {
+        return KEYWORD;
+    }
+    else if (handle_string_constant())
+    {
+        return STRING_CONST;
+    }
+    else if (handle_integer_constant())
+    {
+        return INT_CONST;
+    }
+    else
+    {
+        return INVALID_TYPE;
+    }
+}
+static int peek_char()
+{
+    int c = fgetc(input);
+    if (c != EOF)
+        ungetc(c, input);
+    return c;
 }
