@@ -39,7 +39,7 @@ typedef enum typeOfKeyword
     THIS
 } keywordType;
 
-void tokenizer_create(const char *filename);
+void tokenizer_create(const char *filename, const char *out);
 void tokenizer_destroy(void);
 bool has_more_tokens();
 void advance();

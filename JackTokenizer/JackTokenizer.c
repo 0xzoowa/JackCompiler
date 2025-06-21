@@ -16,12 +16,12 @@ static int input_index = 0;
 static int peek_char();
 static void set_current_token();
 static bool handle_symbol();
-static bool handle_keyword();         // todo
-static bool handle_identifier();      // todo
-static bool handle_string_constant(); // todo
+static bool handle_keyword();
+static bool handle_identifier();
+static bool handle_string_constant();
 static bool handle_integer_constant();
 
-void tokenizer_create(const char *filename)
+void tokenizer_create(const char *filename, const char *out)
 {
     input = fopen(filename, "r");
     if (input == NULL)
@@ -29,7 +29,7 @@ void tokenizer_create(const char *filename)
         fprintf(stderr, "Error: Cannot open file %s\n", filename);
         exit(EXIT_FAILURE);
     }
-    outT = fopen(filename, "w");
+    outT = fopen(out, "w");
     if (outT == NULL)
     {
         fprintf(stderr, "Error: Could not create output file %s\n", filename);
@@ -143,7 +143,8 @@ static bool handle_symbol()
 
 static bool handle_keyword()
 {
-    char *key = "test";
+    // build current token
+    set_current_token();
 
     const char *jack_keywords[KEYWORDS] = {"class",
                                            "method",
@@ -169,7 +170,7 @@ static bool handle_keyword()
 
     for (int i = 0; i < KEYWORDS; i++)
     {
-        if (strcmp(jack_keywords[i], key) == 0)
+        if (strcmp(jack_keywords[i], current_token) == 0)
         {
             return true;
         }
@@ -178,15 +179,53 @@ static bool handle_keyword()
 }
 static bool handle_identifier()
 {
-    /**
-     * we already have the first character stored in current char
-     * build out string
-     * parse string and check if it aligns with rule logic
-     */
+
+    if (isalpha((unsigned char)current_char) || current_char == '_')
+    {
+        reset_input_string();
+        build_input_string();
+        advance();
+
+        while (isalnum((unsigned char)current_char) || current_char == '_')
+        {
+            build_input_string();
+            advance();
+        }
+        current_token = strdup(input_string);
+        if (handle_keyword(current_token))
+        {
+            return false;
+        }
+        return true;
+    }
+    return false;
 }
 static bool handle_string_constant()
 {
+
+    if (current_char != '"')
+        return false;
+
+    reset_input_string();
+    advance();
+
+    while (current_char != '"' && current_char != '\0')
+    {
+        build_input_string();
+        advance();
+    }
+
+    if (current_char == '"')
+    {
+        advance();
+        current_token = strdup(input_string);
+        return true;
+    }
+
+    fprintf(stderr, "Unterminated string constant.\n");
+    return false;
 }
+
 static bool handle_integer_constant()
 {
 
