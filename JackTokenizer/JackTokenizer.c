@@ -169,13 +169,18 @@ tokenType token_type()
 
     if (current_char == '"')
     {
-        // String constant
-
-        advance(); // Skip opening quote
+        advance();
         while (current_char != '"' && current_char != '\0')
         {
             build_input_string();
             advance();
+        }
+        if (current_char == '\0')
+        {
+            // no closing quote
+            current_token = strdup(input_string);
+            fprintf(stderr, "Error: Unterminated string constant.\n");
+            return STRING_ERROR;
         }
         advance(); // Skip closing quote
         current_token = strdup(input_string);

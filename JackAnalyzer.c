@@ -1,10 +1,3 @@
-/**
- * creates a JackTokenizer from the Xxx.jack input file;
- * creates an output file named Xxx.xml; and
- * uses the JackTokenizer and the CompilationEngine to parse the input file and write the parsed code to the output file.
- *      => the process method will handle this
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -21,7 +14,8 @@ char out_file[MAX_CHAR];
 char outT_file[MAX_CHAR];
 char path[PATH_MAX];
 
-void process();
+void process(FILE *in, FILE *outT);
+void write_xml(tokenType type);
 
 int main(int argc, char *argv[])
 {
@@ -46,7 +40,7 @@ int main(int argc, char *argv[])
         snprintf(outT_file, sizeof(out_file), "%sT.xml", filename);
         snprintf(out_file, sizeof(out_file), "%s.xml", filename);
 
-        // process(input)
+        process(input, outT_file);
     }
     else
     {
@@ -66,11 +60,64 @@ int main(int argc, char *argv[])
             }
             snprintf(outT_file, sizeof(out_file), "%s/%sT.xml", input, remove_extension(entry->d_name));
             snprintf(out_file, sizeof(out_file), "%s/%s.xml", input, remove_extension(entry->d_name));
-            // process(path);
+            process(path, outT_file);
         }
         closedir(dir);
     }
     return 0;
 }
 
-void process() {}
+void process(FILE *in, FILE *outT)
+{
+    tokenizer_create(in, outT);
+    while (has_more_tokens())
+    {
+        advance(); // sets the current character => current_char
+        tokenType type_of_token = token_type();
+        write_xml(type_of_token);
+    }
+    tokenizer_destroy();
+}
+
+// writexml based on the token type
+void write_xml(tokenType type)
+{
+    if (!outT_file)
+    {
+        fprintf(stderr, "write_xml: outT_file not initialized.\n");
+        return;
+    }
+
+    if (type == KEYWORD)
+    {
+        fprintf(outT_file, "<keyword> %s </keyword>\n", keyword());
+    }
+    else if (type == SYMBOL)
+    {
+        const char *sym = symbol();
+        if (strcmp(sym, "<") == 0)
+            fprintf(outT_file, "<symbol> &lt; </symbol>\n");
+        else if (strcmp(sym, ">") == 0)
+            fprintf(outT_file, "<symbol> &gt; </symbol>\n");
+        else if (strcmp(sym, "&") == 0)
+            fprintf(outT_file, "<symbol> &amp; </symbol>\n");
+        else
+            fprintf(outT_file, "<symbol> %s </symbol>\n", sym);
+    }
+    else if (type == IDENTIFIER)
+    {
+        fprintf(outT_file, "<identifier> %s </identifier>\n", identifier());
+    }
+    else if (type == INT_CONST)
+    {
+        fprintf(outT_file, "<integerConstant> %d </integerConstant>\n", int_val());
+    }
+    else if (type == STRING_CONST)
+    {
+        fprintf(outT_file, "<stringConstant> %s </stringConstant>\n", string_val());
+    }
+    else
+    {
+        fprintf(stderr, "write_xml: unknown token type %d\n", type);
+    }
+}

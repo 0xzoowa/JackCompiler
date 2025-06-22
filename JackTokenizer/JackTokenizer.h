@@ -37,7 +37,8 @@ typedef enum typeOfKeyword
     FALSE,
     JACK_NULL,
     THIS,
-    INVALID_KEYWORD
+    INVALID_KEYWORD,
+    STRING_ERROR
 } keywordType;
 
 void tokenizer_create(const char *filename, const char *out);
