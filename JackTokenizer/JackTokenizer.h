@@ -5,7 +5,7 @@
 
 typedef enum typeOfToken
 {
-    KEYWORD = 1,
+    KEYWORD = 0,
     SYMBOL,
     IDENTIFIER,
     INT_CONST,
@@ -16,7 +16,7 @@ typedef enum typeOfToken
 typedef enum typeOfKeyword
 {
 
-    CLASS = 1,
+    CLASS = 0,
     METHOD,
     FUNCTION,
     CONSTRUCTOR,
@@ -36,7 +36,8 @@ typedef enum typeOfKeyword
     TRUE,
     FALSE,
     JACK_NULL,
-    THIS
+    THIS,
+    INVALID_KEYWORD
 } keywordType;
 
 void tokenizer_create(const char *filename, const char *out);
@@ -45,7 +46,7 @@ bool has_more_tokens();
 void advance();
 tokenType token_type();
 keywordType keyword();
-char symbol();
+char *symbol();
 char *identifier();
 int int_val();
 char *string_val();

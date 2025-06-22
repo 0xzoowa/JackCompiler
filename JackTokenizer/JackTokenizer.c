@@ -5,21 +5,38 @@
 #include <ctype.h>
 
 #define MAX_TOKEN_LENGTH 256
-#define KEYWORDS 21
+#define KEYWORDS (sizeof(jack_keywords) / sizeof(jack_keywords[0]))
 static FILE *input = NULL;
 static FILE *outT = NULL;
 static char current_char = NULL;
 static char *current_token = NULL;
 static char *input_string = NULL;
 static int input_index = 0;
+static const char *jack_keywords[] = {"class",
+                                      "method",
+                                      "function",
+                                      "constructor",
+                                      "int",
+                                      "boolean",
+                                      "char",
+                                      "void",
+                                      "var",
+                                      "static",
+                                      "field",
+                                      "let",
+                                      "do",
+                                      "if",
+                                      "else",
+                                      "while",
+                                      "return",
+                                      "true",
+                                      "false",
+                                      "null",
+                                      "this"};
 
 static int peek_char();
-static void set_current_token();
-static bool handle_symbol();
-static bool handle_keyword();
-static bool handle_identifier();
-static bool handle_string_constant();
-static bool handle_integer_constant();
+static bool handle_symbol(char ch);
+static bool handle_keyword(char *keyword);
 
 void tokenizer_create(const char *filename, const char *out)
 {
@@ -37,6 +54,7 @@ void tokenizer_create(const char *filename, const char *out)
     }
     fprintf(outT, "<tokens>");
 }
+
 void tokenizer_destroy(void)
 {
     if (input != NULL)
@@ -46,6 +64,7 @@ void tokenizer_destroy(void)
     }
     fprintf(outT, "</tokens>");
 }
+
 bool has_more_tokens()
 {
 
@@ -109,24 +128,13 @@ static void build_input_string()
     }
 }
 
-static void set_current_token()
-{
-    reset_input_string();
-    while (!isspace(current_char) && !is_jack_symbol(current_char))
-    {
-        build_input_string();
-        advance();
-    }
-    current_token = strdup(input_string); // check that current token is not null
-}
-
 void reset_input_string()
 {
     input_index = 0;
     input_string[0] = '\0';
 }
 
-static bool handle_symbol()
+static bool handle_symbol(char ch)
 {
     char jack_symbols[] = {
         '{', '}', '(', ')', '[', ']', '.', ',', ';',
@@ -135,141 +143,112 @@ static bool handle_symbol()
 
     for (int i = 0; jack_symbols[i] != '\0'; i++)
     {
-        if (jack_symbols[i] == current_char)
+        if (jack_symbols[i] == ch)
             return true;
     }
     return false;
 }
 
-static bool handle_keyword()
+static bool handle_keyword(char *keyword)
 {
-    // build current token
-    set_current_token();
-
-    const char *jack_keywords[KEYWORDS] = {"class",
-                                           "method",
-                                           "function",
-                                           "constructor",
-                                           "int",
-                                           "boolean",
-                                           "char",
-                                           "void",
-                                           "var",
-                                           "static",
-                                           "field",
-                                           "let",
-                                           "do",
-                                           "if",
-                                           "else",
-                                           "while",
-                                           "return",
-                                           "true",
-                                           "false",
-                                           "null",
-                                           "this"};
 
     for (int i = 0; i < KEYWORDS; i++)
     {
-        if (strcmp(jack_keywords[i], current_token) == 0)
+        if (strcmp(jack_keywords[i], keyword) == 0)
         {
             return true;
         }
     }
     return false;
-}
-static bool handle_identifier()
-{
-
-    if (isalpha((unsigned char)current_char) || current_char == '_')
-    {
-        reset_input_string();
-        build_input_string();
-        advance();
-
-        while (isalnum((unsigned char)current_char) || current_char == '_')
-        {
-            build_input_string();
-            advance();
-        }
-        current_token = strdup(input_string);
-        if (handle_keyword(current_token))
-        {
-            return false;
-        }
-        return true;
-    }
-    return false;
-}
-static bool handle_string_constant()
-{
-
-    if (current_char != '"')
-        return false;
-
-    reset_input_string();
-    advance();
-
-    while (current_char != '"' && current_char != '\0')
-    {
-        build_input_string();
-        advance();
-    }
-
-    if (current_char == '"')
-    {
-        advance();
-        current_token = strdup(input_string);
-        return true;
-    }
-
-    fprintf(stderr, "Unterminated string constant.\n");
-    return false;
-}
-
-static bool handle_integer_constant()
-{
-
-    if (!isdigit((unsigned char)current_char))
-    {
-        return false;
-    }
-    set_current_token();
-    for (int i = 0; current_token[i] != '\0'; i++)
-    {
-        if (!isdigit((unsigned char)current_token[i]))
-            return false;
-    }
-    return true;
 }
 
 tokenType token_type()
 {
 
-    if (handle_symbol())
+    reset_input_string();
+
+    if (current_char == '"')
     {
-        return SYMBOL;
-    }
-    else if (handle_identifier())
-    {
-        return IDENTIFIER;
-    }
-    else if (handle_keyword())
-    {
-        return KEYWORD;
-    }
-    else if (handle_string_constant())
-    {
+        // String constant
+
+        advance(); // Skip opening quote
+        while (current_char != '"' && current_char != '\0')
+        {
+            build_input_string();
+            advance();
+        }
+        advance(); // Skip closing quote
+        current_token = strdup(input_string);
         return STRING_CONST;
     }
-    else if (handle_integer_constant())
+    else if (isdigit(current_char))
     {
+        while (isdigit(current_char))
+        {
+            build_input_string();
+            advance();
+        }
+        current_token = strdup(input_string);
         return INT_CONST;
+    }
+    else if (isalpha(current_char) || current_char == '_')
+    {
+        while (isalnum(current_char) || current_char == '_')
+        {
+            build_input_string();
+            advance();
+        }
+        current_token = strdup(input_string);
+        return handle_keyword(current_token) ? KEYWORD : IDENTIFIER;
+    }
+    else if (handle_symbol(current_char))
+    {
+        build_input_string();
+        current_token = strdup(input_string);
+        advance();
+        return SYMBOL;
     }
     else
     {
+        current_token = NULL;
         return INVALID_TYPE;
     }
 }
+
+keywordType keyword()
+{
+
+    for (int i = 0; i < KEYWORDS; i++)
+    {
+        if (strcmp(jack_keywords[i], current_char) == 0)
+        {
+            return (keywordType)i;
+        }
+        fprintf(stderr, "Invalid keyword: %s\n", current_token);
+        return INVALID_KEYWORD;
+    }
+}
+
+char *symbol()
+{
+    return current_token;
+}
+
+char *identifier()
+{
+    return current_token;
+}
+
+int int_val()
+{
+    return atoi(current_token);
+}
+
+char *string_val()
+{
+    return current_token;
+}
+
 static int peek_char()
 {
     int c = fgetc(input);
