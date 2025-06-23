@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#define MAX_TOKEN_LENGTH 256
+
 typedef enum typeOfToken
 {
     KEYWORD = 0,

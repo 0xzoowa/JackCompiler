@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
     {
         fprintf(stderr, "Not enough arguments, please provide a filename or path.");
-        return 1;
+        return 0;
     }
     const char *input = argv[1];
 
@@ -58,13 +58,16 @@ int main(int argc, char *argv[])
             {
                 continue;
             }
-            snprintf(outT_file, sizeof(out_file), "%s/%sT.xml", input, remove_extension(entry->d_name));
-            snprintf(out_file, sizeof(out_file), "%s/%s.xml", input, remove_extension(entry->d_name));
-            process(path, outT_file);
+            else
+            {
+                snprintf(outT_file, sizeof(out_file), "%s/%sT.xml", input, remove_extension(entry->d_name));
+                snprintf(out_file, sizeof(out_file), "%s/%s.xml", input, remove_extension(entry->d_name));
+                process(path, outT_file);
+            }
         }
         closedir(dir);
     }
-    return 0;
+    return 1;
 }
 
 void process(FILE *in, FILE *outT)

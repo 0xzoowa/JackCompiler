@@ -4,7 +4,6 @@
 #include <string.h>
 #include <ctype.h>
 
-#define MAX_TOKEN_LENGTH 256
 #define KEYWORDS (sizeof(jack_keywords) / sizeof(jack_keywords[0]))
 static FILE *input = NULL;
 static FILE *outT = NULL;
