@@ -1,6 +1,7 @@
 #ifndef JACKTOKENIZER_H
 #define JACKTOKENIZER_H
 
+#include <stdio.h>
 #include <stdbool.h>
 
 #define MAX_TOKEN_LENGTH 256
@@ -12,7 +13,8 @@ typedef enum typeOfToken
     IDENTIFIER,
     INT_CONST,
     STRING_CONST,
-    INVALID_TYPE
+    INVALID_TYPE,
+    STRING_ERROR
 } tokenType;
 
 typedef enum typeOfKeyword
@@ -39,11 +41,11 @@ typedef enum typeOfKeyword
     FALSE,
     JACK_NULL,
     THIS,
-    INVALID_KEYWORD,
-    STRING_ERROR
+    INVALID_KEYWORD
+
 } keywordType;
 
-void tokenizer_create(const char *filename, const char *out);
+void tokenizer_create(const char *filename, FILE *out);
 void tokenizer_destroy(void);
 bool has_more_tokens();
 void advance();

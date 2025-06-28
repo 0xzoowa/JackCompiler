@@ -28,11 +28,11 @@ bool validate_input_file(const char *filename)
     return true;
 }
 
-char *remove_extension(const char *filename)
+const char *remove_extension(const char *filename)
 {
     char *result;
 
-    const char *dot = strrchr(filename, '.');
+    char *dot = strrchr(filename, '.');
 
     if (!dot)
     {
@@ -52,7 +52,7 @@ char *remove_extension(const char *filename)
     return NULL;
 }
 
-char *get_filename_without_extension(const char *filename)
+const char *get_filename_without_extension(const char *filename)
 {
     char *result;
 
@@ -63,7 +63,7 @@ char *get_filename_without_extension(const char *filename)
     {
         slash = strrchr(filename, '\\'); // windows
     }
-    char *base = (slash) ? slash + 1 : filename; // sets base to just after the slash eg /out => (slash == /) and (slash + 1 == o); pointer arithmetic
+    const char *base = (slash) ? slash + 1 : filename; // sets base to just after the slash eg /out => (slash == /) and (slash + 1 == o); pointer arithmetic
 
     if (!dot || (dot < base))
     {

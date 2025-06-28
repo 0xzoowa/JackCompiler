@@ -3,6 +3,8 @@
         ".fantomasignore": "ignore",
         "utils.h": "c",
         "dirent.h": "c",
-        "ctype.h": "c"
+        "ctype.h": "c",
+        "stdio.h": "c",
+        "stdbool.h": "c"
     }
 }

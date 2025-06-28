@@ -7,7 +7,7 @@
 #define KEYWORDS (sizeof(jack_keywords) / sizeof(jack_keywords[0]))
 static FILE *input = NULL;
 static FILE *outT = NULL;
-static char current_char = NULL;
+static char current_char = '\0';
 static char *current_token = NULL;
 static char *input_string = NULL;
 static int input_index = 0;
@@ -37,7 +37,7 @@ static int peek_char();
 static bool handle_symbol(char ch);
 static bool handle_keyword(char *keyword);
 
-void tokenizer_create(const char *filename, const char *out)
+void tokenizer_create(const char *filename, FILE *out)
 {
     input = fopen(filename, "r");
     if (input == NULL)
@@ -45,12 +45,7 @@ void tokenizer_create(const char *filename, const char *out)
         fprintf(stderr, "Error: Cannot open file %s\n", filename);
         exit(EXIT_FAILURE);
     }
-    outT = fopen(out, "w");
-    if (outT == NULL)
-    {
-        fprintf(stderr, "Error: Could not create output file %s\n", filename);
-        exit(EXIT_FAILURE);
-    }
+    outT = out;
     fprintf(outT, "<tokens>");
 }
 
@@ -151,7 +146,7 @@ static bool handle_symbol(char ch)
 static bool handle_keyword(char *keyword)
 {
 
-    for (int i = 0; i < KEYWORDS; i++)
+    for (unsigned long i = 0; i < KEYWORDS; i++)
     {
         if (strcmp(jack_keywords[i], keyword) == 0)
         {
@@ -222,15 +217,15 @@ tokenType token_type()
 keywordType keyword()
 {
 
-    for (int i = 0; i < KEYWORDS; i++)
+    for (unsigned long i = 0; i < KEYWORDS; i++)
     {
-        if (strcmp(jack_keywords[i], current_char) == 0)
+        if (strcmp(jack_keywords[i], current_token) == 0)
         {
             return (keywordType)i;
         }
-        fprintf(stderr, "Invalid keyword: %s\n", current_token);
-        return INVALID_KEYWORD;
     }
+    fprintf(stderr, "Invalid keyword: %s\n", current_token);
+    return INVALID_KEYWORD;
 }
 
 char *symbol()
