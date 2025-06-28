@@ -9,7 +9,7 @@ static FILE *input = NULL;
 static FILE *outT = NULL;
 static char current_char = '\0';
 static char *current_token = NULL;
-static char *input_string = NULL;
+static char input_string[MAX_TOKEN_LENGTH];
 static int input_index = 0;
 static const char *jack_keywords[] = {"class",
                                       "method",
@@ -46,7 +46,7 @@ void tokenizer_create(const char *filename, FILE *out)
         exit(EXIT_FAILURE);
     }
     outT = out;
-    fprintf(outT, "<tokens>");
+    fprintf(outT, "<tokens>\n");
 }
 
 void tokenizer_destroy(void)
