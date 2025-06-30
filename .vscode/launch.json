@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/JackAnalyzer",
       "cwd": "${workspaceFolder}",
-      "args": ["/Users/zoowa/desktop/nand2tetris/projects/10/ArrayTest"],
+      "args": ["/Users/zoowa/desktop/nand2tetris/projects/10/ExpressionLessSquare"],
       "stopAtEntry": false,
       "MIMode": "lldb",  // Or "gdb" depending on your setup
       "preLaunchTask": "Build JackAnalyzer"

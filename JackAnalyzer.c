@@ -80,11 +80,18 @@ void process(const char *in, char *outT)
         exit(EXIT_FAILURE);
     }
     tokenizer_create(in, out);
+    advance(); // sets the current character => current_char
     while (has_more_tokens())
     {
-        advance(); // sets the current character => current_char
         tokenType type_of_token = token_type();
-        write_xml(type_of_token, out);
+        if (type_of_token != INVALID_TYPE)
+        {
+            write_xml(type_of_token, out);
+        }
+        else
+        {
+            advance();
+        }
     }
     tokenizer_destroy();
 }

@@ -34,7 +34,7 @@ static const char *jack_keywords[] = {"class",
                                       "this"};
 
 static int peek_char();
-static bool handle_symbol(char ch);
+bool handle_symbol(char ch);
 static bool handle_keyword(char *keyword);
 
 void tokenizer_create(const char *filename, FILE *out)
@@ -47,6 +47,7 @@ void tokenizer_create(const char *filename, FILE *out)
     }
     outT = out;
     fprintf(outT, "<tokens>\n");
+    advance();
 }
 
 void tokenizer_destroy(void)
@@ -128,7 +129,7 @@ void reset_input_string()
     input_string[0] = '\0';
 }
 
-static bool handle_symbol(char ch)
+bool handle_symbol(char ch)
 {
     char jack_symbols[] = {
         '{', '}', '(', ')', '[', ']', '.', ',', ';',
@@ -158,7 +159,6 @@ static bool handle_keyword(char *keyword)
 
 tokenType token_type()
 {
-
     reset_input_string();
 
     if (current_char == '"')
@@ -254,4 +254,9 @@ static int peek_char()
     if (c != EOF)
         ungetc(c, input);
     return c;
+}
+
+char get_current_char()
+{
+    return current_char;
 }

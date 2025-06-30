@@ -55,5 +55,7 @@ char *symbol();
 char *identifier();
 int int_val();
 char *string_val();
+bool handle_symbol(char ch);
+char get_current_char();
 
 #endif
