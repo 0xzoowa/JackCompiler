@@ -86,7 +86,7 @@ void process(const char *in, char *outT)
         tokenType type_of_token = token_type();
         if (type_of_token != INVALID_TYPE)
         {
-            write_xml(type_of_token, out);
+            write_xml(type_of_token, out); // valid token
         }
         else
         {

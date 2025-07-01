@@ -58,6 +58,11 @@ void tokenizer_destroy(void)
         input = NULL;
     }
     fprintf(outT, "</tokens>");
+    if (outT != NULL)
+    {
+        fclose(outT);
+        outT = NULL;
+    }
 }
 
 bool has_more_tokens()
