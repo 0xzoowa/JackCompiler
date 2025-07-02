@@ -1,5 +1,6 @@
 #include "CompilationEngine.h"
 #include "../JackTokenizer/JackTokenizer.h"
+#include "../Utilities/Utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -12,6 +13,7 @@ static token_string[MAX_CHAR];
 bool advanceToken();
 tokenType currentTokenType();
 const char *currentTokenValue();
+void expect(tokenType expectedType, const char *expectedValue);
 
 void create_engine(char *in, char *out)
 {
@@ -49,10 +51,63 @@ void compile_class(void)
 {
     fprintf(out, "<class>\n");
 
+    expect(KEYWORD, "class");
+    expect(IDENTIFIER, NULL);
+    expect(SYMBOL, "{");
+
+    while (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "static") == 0 || strcmp(currentTokenValue(), "field") == 0))
+    {
+        compile_class_var_dec();
+    }
+    while (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "constructor") == 0 || strcmp(currentTokenValue(), "function") == 0 || strcmp(currentTokenValue(), "method") == 0))
+    {
+        compile_subroutine();
+    }
+
     fprintf(out, "</class>\n");
 }
 void compile_class_var_dec(void) {}
-void compile_subroutine(void) {}
+void compile_subroutine(void)
+{
+    fprintf(out, "<subroutineDec>\n");
+
+    // constructor | function | method
+    if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "constructor") == 0 ||
+                                          strcmp(currentTokenValue(), "function") == 0 ||
+                                          strcmp(currentTokenValue(), "method") == 0))
+    {
+        expect(KEYWORD, NULL);
+    }
+    // void | type
+    if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
+                                          strcmp(currentTokenValue(), "char") == 0 ||
+                                          strcmp(currentTokenValue(), "boolean") == 0 ||
+                                          strcmp(currentTokenValue(), "void") == 0))
+    {
+        expect(KEYWORD, NULL);
+    }
+    else if (currentTokenType() == IDENTIFIER)
+    {
+        expect(IDENTIFIER, NULL); // class type return
+    }
+    else
+    {
+        fprintf(stderr, "Expected return type\n");
+        return;
+    }
+
+    expect(IDENTIFIER, NULL);
+
+    expect(SYMBOL, "(");
+
+    compile_parameter_list();
+
+    expect(SYMBOL, ")");
+
+    compile_subroutine_body();
+
+    fprintf(out, "</subroutineDec>\n");
+}
 void compile_parameter_list(void) {}
 void compile_subroutine_body(void) {}
 void compile_var_dec(void) {}
@@ -68,11 +123,11 @@ int compile_expression_list(void) {}
 
 bool advanceToken()
 {
-    while (fgets(token, MAX_CHAR, in))
+    while (fgets(token_string, MAX_CHAR, in))
     {
-        token_string[strcspn(token, "\n")] = '\0';
+        token_string[strcspn(token_string, "\n")] = '\0';
 
-        if (strcmp(token, "<tokens>") == 0 || strcmp(token, "</tokens>") == 0)
+        if (strcmp(token_string, "<tokens>") == 0 || strcmp(token_string, "</tokens>") == 0)
         {
             continue;
         }
@@ -84,23 +139,23 @@ bool advanceToken()
 
 tokenType currentTokenType()
 {
-    if (strncmp(token, "<keyword>", 9) == 0)
+    if (strncmp(token_string, "<keyword>", 9) == 0)
     {
         return KEYWORD;
     }
-    else if (strncmp(token, "<symbol>", 8) == 0)
+    else if (strncmp(token_string, "<symbol>", 8) == 0)
     {
         return SYMBOL;
     }
-    else if (strncmp(token, "<identifier>", 12) == 0)
+    else if (strncmp(token_string, "<identifier>", 12) == 0)
     {
         return IDENTIFIER;
     }
-    else if (strncmp(token, "<integerConstant>", 18) == 0)
+    else if (strncmp(token_string, "<integerConstant>", 18) == 0)
     {
         return INT_CONST;
     }
-    else if (strncmp(token, "<stringConstant>", 17) == 0)
+    else if (strncmp(token_string, "<stringConstant>", 17) == 0)
     {
         return STRING_CONST;
     }
@@ -113,8 +168,8 @@ tokenType currentTokenType()
 const char *currentTokenValue()
 {
     static char value[MAX_CHAR];
-    char *start = strchr(token, '>') + 1;
-    char *end = strrchr(token, '<');
+    char *start = strchr(token_string, '>') + 1;
+    char *end = strrchr(token_string, '<');
 
     if (!start || !end || end <= start)
     {
@@ -125,4 +180,26 @@ const char *currentTokenValue()
     strncpy(value, start, len);
     value[len] = '\0';
     return value;
+}
+
+void expect(tokenType expectedType, const char *expectedValue)
+{
+    tokenType actualType = currentTokenType();
+    const char *actualValue = currentTokenValue();
+
+    if (actualType != expectedType)
+    {
+        fprintf(stderr, "Syntax Error: Expected token type %d, got %d\n", expectedType, actualType);
+        return;
+    }
+
+    if (expectedValue != NULL && strcmp(expectedValue, actualValue) != 0)
+    {
+        fprintf(stderr, "Syntax Error: Expected token value '%s', got '%s'\n", expectedValue, actualValue);
+        return;
+    }
+
+    write_xml(actualType, out);
+
+    advanceToken();
 }
