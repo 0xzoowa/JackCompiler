@@ -15,7 +15,6 @@ char out[MAX_CHAR];
 char path[PATH_MAX];
 
 void process(const char *in, char *outT);
-void write_xml(tokenType type, FILE *out);
 char *keyword_type_to_string(keywordType kw);
 
 int main(int argc, char *argv[])
@@ -86,7 +85,7 @@ void process(const char *in, char *outT)
         tokenType type_of_token = token_type();
         if (type_of_token != INVALID_TYPE)
         {
-            write_xml(type_of_token, out); // valid token
+            write_xml(false, type_of_token, out, NULL); // valid token
         }
         else
         {

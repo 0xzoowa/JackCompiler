@@ -86,16 +86,34 @@ const char *get_filename_without_extension(const char *filename)
 }
 
 // writexml based on the token type
-void write_xml(tokenType type, FILE *out)
+void write_xml(bool flag, tokenType type, FILE *out, const char *value)
 {
     if (type == KEYWORD)
     {
 
-        fprintf(out, "<keyword> %s </keyword>\n", keyword_type_to_string(keyword()));
+        if (flag && value != NULL)
+        {
+            fprintf(out, "<keyword> %s </keyword>\n", value);
+        }
+        else
+        {
+            fprintf(out, "<keyword> %s </keyword>\n", keyword_type_to_string(keyword()));
+        }
     }
     else if (type == SYMBOL)
     {
-        const char *sym = symbol();
+
+        const char *sym;
+
+        if (flag && value != NULL)
+        {
+            sym = value;
+        }
+        else
+        {
+            sym = symbol();
+        }
+
         if (strcmp(sym, "<") == 0)
             fprintf(out, "<symbol> &lt; </symbol>\n");
         else if (strcmp(sym, ">") == 0)
@@ -107,15 +125,36 @@ void write_xml(tokenType type, FILE *out)
     }
     else if (type == IDENTIFIER)
     {
-        fprintf(out, "<identifier> %s </identifier>\n", identifier());
+        if (flag && value != NULL)
+        {
+            fprintf(out, "<identifier> %s </identifier>\n", value);
+        }
+        else
+        {
+            fprintf(out, "<identifier> %s </identifier>\n", identifier());
+        }
     }
     else if (type == INT_CONST)
     {
-        fprintf(out, "<integerConstant> %d </integerConstant>\n", int_val());
+        if (flag && value != NULL)
+        {
+            fprintf(out, "<integerConstant> %d </integerConstant>\n", value);
+        }
+        else
+        {
+            fprintf(out, "<integerConstant> %d </integerConstant>\n", int_val());
+        }
     }
     else if (type == STRING_CONST)
     {
-        fprintf(out, "<stringConstant> %s </stringConstant>\n", string_val());
+        if (flag && value != NULL)
+        {
+            fprintf(out, "<stringConstant> %s </stringConstant>\n", value);
+        }
+        else
+        {
+            fprintf(out, "<stringConstant> %s </stringConstant>\n", string_val());
+        }
     }
     else
     {

@@ -13,7 +13,7 @@ static token_string[MAX_CHAR];
 bool advanceToken();
 tokenType currentTokenType();
 const char *currentTokenValue();
-void expect(tokenType expectedType, const char *expectedValue);
+bool expect(tokenType expectedType, const char *expectedValue);
 
 void create_engine(char *in, char *out)
 {
@@ -47,11 +47,22 @@ void destroy_engine(void)
         out = NULL;
     }
 }
+
 void compile_class(void)
 {
+    /**
+     * class: 'class' className '{' classVarDec* subroutineDec* '}'
+     * classVarDec: ('static' | 'field') type varName (',' varName)* ';'
+     * subroutineDec: ('constructor' 'function' 'method') ('void'|type) subroutineName
+     * '(' parameterList ')' subroutineBody
+     */
     fprintf(out, "<class>\n");
 
-    expect(KEYWORD, "class");
+    if (currentTokenType() == KEYWORD && strcmp(currentTokenValue(), "class") == 0)
+    {
+        expect(KEYWORD, NULL);
+    } // else handle/log error: error handling??
+
     expect(IDENTIFIER, NULL);
     expect(SYMBOL, "{");
 
@@ -66,19 +77,45 @@ void compile_class(void)
 
     fprintf(out, "</class>\n");
 }
-void compile_class_var_dec(void) {}
+
+void compile_class_var_dec(void)
+{
+    /**
+     * ('static' | 'field') type varName (',' varName)* ';'
+     */
+}
+
 void compile_subroutine(void)
 {
+
+    /**
+     * ('constructor' 'function' 'method') ('void'|type) subroutineName
+     * '(' parameterList ')' subroutineBody
+     *
+     *  type:  |'int' |'char' | 'boolean'| className
+     *
+     *  ('void'|type): 'void' |'int' |'char' | 'boolean'| className
+     *
+     * subroutineName : identifier
+     *
+     * parameterList: ( (type varName) (',' type varName) *)?
+     *
+     * subroutineBody: '{' varDec* statements '}'
+     *
+     *
+     */
+
     fprintf(out, "<subroutineDec>\n");
 
-    // constructor | function | method
+    //('constructor' 'function' 'method')
     if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "constructor") == 0 ||
                                           strcmp(currentTokenValue(), "function") == 0 ||
                                           strcmp(currentTokenValue(), "method") == 0))
     {
         expect(KEYWORD, NULL);
     }
-    // void | type
+    //('void'|type): 'void' |'int' |'char' | 'boolean'| className: identifier
+
     if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
                                           strcmp(currentTokenValue(), "char") == 0 ||
                                           strcmp(currentTokenValue(), "boolean") == 0 ||
@@ -96,6 +133,8 @@ void compile_subroutine(void)
         return;
     }
 
+    // subroutineName : identifier
+
     expect(IDENTIFIER, NULL);
 
     expect(SYMBOL, "(");
@@ -108,17 +147,99 @@ void compile_subroutine(void)
 
     fprintf(out, "</subroutineDec>\n");
 }
-void compile_parameter_list(void) {}
-void compile_subroutine_body(void) {}
+
+void compile_parameter_list(void)
+{
+
+    /**
+     *  parameterList: ( (type varName) (',' type varName) *)?
+     *
+     */
+
+    tokenType ttype = currentTokenType();
+    const char *tvalue = currentTokenValue();
+
+    fprintf(out, "<ParameterList>\n");
+
+    expect(ttype, "(");
+
+    //(type):'int' |'char' | 'boolean'| className: identifier
+    if (ttype == KEYWORD && (strcmp(tvalue, "int") == 0 ||
+                             strcmp(tvalue, "char") == 0 ||
+                             strcmp(tvalue, "boolean") == 0))
+    {
+        expect(KEYWORD, NULL);
+        expect(IDENTIFIER, NULL); // var name
+    }
+
+    else if (ttype == IDENTIFIER)
+    {
+        expect(IDENTIFIER, NULL); // class name
+        expect(IDENTIFIER, NULL); // var name
+    }
+
+    while (ttype == SYMBOL && strcmp(tvalue, ",") == 0)
+    {
+        expect(SYMBOL, ",");
+
+        ttype = currentTokenType();
+        tvalue = currentTokenValue();
+
+        //(type):'int' |'char' | 'boolean'| className: identifier
+        if (ttype == KEYWORD && (strcmp(tvalue, "int") == 0 ||
+                                 strcmp(tvalue, "char") == 0 ||
+                                 strcmp(tvalue, "boolean") == 0))
+        {
+            expect(KEYWORD, NULL);    // type
+            expect(IDENTIFIER, NULL); // var name
+        }
+
+        else if (ttype == IDENTIFIER)
+        {
+            expect(IDENTIFIER, NULL); // class name
+            expect(IDENTIFIER, NULL); // var name
+        }
+    }
+
+    expect(SYMBOL, ")");
+
+    fprintf(out, "</ParameterList>");
+}
+
+void compile_subroutine_body(void)
+{
+    /**
+     * subroutineBody: '{' varDec* statements '}'
+     *
+     * varDec: 'var' type varName (',' varName) * ';'
+     * statements: statement*
+     * statement: letStatement| ifStatement| whileStatement | doStatement | returnStatement
+     * letStatement: 'let' varName ('[' expression ']')? '=' expression
+     * ifStatement: 'if' '('expression ')' '{' statements '}' ('else' '{' statements '}')?
+     * whileStatement: 'while' '('expression ')' '{' statements '}'
+     * doStatement: 'do' subroutineCall ';'
+     * returnStatement: 'return' expression? ';'
+     */
+}
+
 void compile_var_dec(void) {}
+
 void compile_statements(void) {}
+
 void compile_let(void) {}
+
 void compile_if(void) {}
+
 void compile_while(void) {}
+
 void compile_do(void) {}
+
 void compile_return(void) {}
+
 void compile_expression(void) {}
+
 void compile_term(void) {}
+
 int compile_expression_list(void) {}
 
 bool advanceToken()
@@ -151,11 +272,11 @@ tokenType currentTokenType()
     {
         return IDENTIFIER;
     }
-    else if (strncmp(token_string, "<integerConstant>", 18) == 0)
+    else if (strncmp(token_string, "<integerConstant>", 17) == 0)
     {
         return INT_CONST;
     }
-    else if (strncmp(token_string, "<stringConstant>", 17) == 0)
+    else if (strncmp(token_string, "<stringConstant>", 16) == 0)
     {
         return STRING_CONST;
     }
@@ -182,7 +303,7 @@ const char *currentTokenValue()
     return value;
 }
 
-void expect(tokenType expectedType, const char *expectedValue)
+bool expect(tokenType expectedType, const char *expectedValue)
 {
     tokenType actualType = currentTokenType();
     const char *actualValue = currentTokenValue();
@@ -190,16 +311,17 @@ void expect(tokenType expectedType, const char *expectedValue)
     if (actualType != expectedType)
     {
         fprintf(stderr, "Syntax Error: Expected token type %d, got %d\n", expectedType, actualType);
-        return;
+        return false;
     }
 
     if (expectedValue != NULL && strcmp(expectedValue, actualValue) != 0)
     {
         fprintf(stderr, "Syntax Error: Expected token value '%s', got '%s'\n", expectedValue, actualValue);
-        return;
+        return false;
     }
 
-    write_xml(actualType, out);
+    write_xml(true, actualType, out, actualValue);
 
     advanceToken();
+    return true;
 }
