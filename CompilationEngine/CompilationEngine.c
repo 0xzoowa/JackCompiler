@@ -83,6 +83,25 @@ void compile_class_var_dec(void)
     /**
      * ('static' | 'field') type varName (',' varName)* ';'
      */
+
+    expect(KEYWORD, NULL);
+
+    if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
+                                          strcmp(currentTokenValue(), "char") == 0 ||
+                                          strcmp(currentTokenValue(), "boolean") == 0))
+    {
+        expect(KEYWORD, NULL);
+    }
+
+    expect(IDENTIFIER, NULL);
+
+    while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
+    {
+        expect(SYMBOL, ",");
+        expect(IDENTIFIER, NULL);
+    }
+
+    expect(SYMBOL, ";");
 }
 
 void compile_subroutine(void)
