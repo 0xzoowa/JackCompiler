@@ -10,7 +10,7 @@ static FILE *in = NULL;
 static FILE *out = NULL;
 static token_string[MAX_CHAR];
 
-bool advanceToken();
+bool advance_token();
 tokenType currentTokenType();
 const char *currentTokenValue();
 bool expect(tokenType expectedType, const char *expectedValue);
@@ -593,9 +593,39 @@ void compile_subroutine_call()
     /**
      * subroutineCall: subroutineName '(' expressionList ')' | (className | varName)'.'subroutineName '(' expressionList ')'
      */
+
+    if (currentTokenType() != IDENTIFIER)
+    {
+        fprintf(stderr, "Error: Expected identifier to start subroutine call.\n");
+        return;
+    }
+
+    expect(IDENTIFIER, NULL);
+
+    const char *nv;
+    tokenType nt;
+    peek_next_token(&nt, &nv);
+    if (nt == SYMBOL && strcmp(nv, ")") == 0)
+    {
+        expect(SYMBOL, "(");
+        compile_expression_list();
+        expect(SYMBOL, ")");
+    }
+    else if (nt == SYMBOL && strcmp(nv, ".") == 0)
+    {
+        expect(SYMBOL, ".");
+        expect(IDENTIFIER, NULL);
+        expect(SYMBOL, "(");
+        compile_expression_list();
+        expect(SYMBOL, ")");
+    }
+    else
+    {
+        fprintf(stderr, "Error: Invalid subroutine call syntax.\n");
+    }
 }
 
-bool advanceToken()
+bool advance_token()
 {
     while (fgets(token_string, MAX_CHAR, in))
     {
