@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
         snprintf(out_file, sizeof(out_file), "%s.xml", filename);
 
         process(input, out);
+        create_engine(out, out_file);
     }
     else
     {
@@ -63,6 +64,7 @@ int main(int argc, char *argv[])
                 snprintf(out, sizeof(out_file), "%s/%sTT.xml", input, remove_extension(entry->d_name));
                 snprintf(out_file, sizeof(out_file), "%s/%s.xml", input, remove_extension(entry->d_name));
                 process(path, out);
+                create_engine(out, out_file);
             }
         }
         closedir(dir);
