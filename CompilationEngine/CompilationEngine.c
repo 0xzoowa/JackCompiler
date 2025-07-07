@@ -15,6 +15,7 @@ tokenType currentTokenType();
 const char *currentTokenValue();
 bool expect(tokenType expectedType, const char *expectedValue);
 void compile_subroutine_call();
+void peek_next_token(tokenType *next_type, const char **next_val);
 
 void create_engine(char *in, char *out)
 {
@@ -182,7 +183,7 @@ void compile_parameter_list(void)
     tokenType ttype = currentTokenType();
     const char *tvalue = currentTokenValue();
 
-    fprintf(out, "<ParameterList>\n");
+    fprintf(out, "<parameterList>\n");
 
     expect(ttype, "(");
 
@@ -201,7 +202,7 @@ void compile_parameter_list(void)
         expect(IDENTIFIER, NULL); // var name
     }
 
-    while (ttype == SYMBOL && strcmp(tvalue, ",") == 0)
+    while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
     {
         expect(SYMBOL, ",");
 
@@ -226,7 +227,7 @@ void compile_parameter_list(void)
 
     expect(SYMBOL, ")");
 
-    fprintf(out, "</ParameterList>");
+    fprintf(out, "</parameterList>");
 }
 
 void compile_subroutine_body(void)
@@ -249,6 +250,7 @@ void compile_subroutine_body(void)
     expect(SYMBOL, "{");
     compile_var_dec();
     compile_statements();
+    expect(SYMBOL, "}");
 
     fprintf(out, "</subroutineBody>\n");
 }
@@ -437,24 +439,118 @@ void compile_return(void)
         compile_expression();
     }
 
+    expect(SYMBOL, ";");
+
     fprintf(out, "</returnStatement>\n");
 }
 
 void compile_expression(void)
 {
     /**
-     * expression: term (op term) *
+     * expression: term (op term) * ✅
      * term: integerConstant | stringConstant | kevwordConstant | varName |
-     *  varName '[' expression ']' | '(' expression ')' | (unaryOp term) | subroutineCall
+     *  varName '[' expression ']' | '(' expression ')' | (unaryOp term) | subroutineCall ✅
      * subroutineCall: subroutineName '(' expressionList ')' | (className | varName)'.'subroutineName '(' expressionList ')'
-     * expressionList: (expression (',' expression) *)?
-     * unaryOp: '-' | '~'
-     * keywordConstant: 'true' | 'false' | 'null' | 'this'
-     * op: '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
+     * expressionList: (expression (',' expression) *)? ✅
+     * unaryOp: '-' | '~' ✅
+     * keywordConstant: 'true' | 'false' | 'null' | 'this' ✅
+     * op: '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '=' ✅
      */
+
+    fprintf(out, "<expression>\n");
+
+    compile_term();
+    while (
+        currentTokenType() == SYMBOL &&
+        (strcmp(currentTokenValue(), "+") == 0 ||
+         strcmp(currentTokenValue(), "-") == 0 ||
+         strcmp(currentTokenValue(), "*") == 0 ||
+         strcmp(currentTokenValue(), "/") == 0 ||
+         strcmp(currentTokenValue(), "&") == 0 ||
+         strcmp(currentTokenValue(), "|") == 0 ||
+         strcmp(currentTokenValue(), "<") == 0 ||
+         strcmp(currentTokenValue(), ">") == 0 ||
+         strcmp(currentTokenValue(), "=") == 0))
+    {
+        expect(SYMBOL, NULL);
+        compile_term();
+    }
+
+    fprintf(out, "</expression>\n");
 }
 
-void compile_term(void) {}
+void compile_term(void)
+{
+    tokenType type = currentTokenType();
+
+    const char *val = currentTokenValue();
+    /**
+     * term: integerConstant | stringConstant | kevwordConstant | varName |
+     *  varName '[' expression ']' | '(' expression ')' | (unaryOp term) | subroutineCall
+     */
+
+    fprintf(out, "<term>\n");
+
+    if (type == INT_CONST)
+    {
+        expect(INT_CONST, NULL);
+    }
+    else if (type == STRING_CONST)
+    {
+        expect(STRING_CONST, NULL);
+    }
+    else if (type == KEYWORD && (strcmp(val, "true") == 0 ||
+                                 strcmp(val, "false") == 0 ||
+                                 strcmp(val, "null") == 0 ||
+                                 strcmp(val, "this") == 0))
+    {
+        expect(KEYWORD, NULL);
+    }
+    else if (type == IDENTIFIER)
+    {
+        const char *next_val;
+        tokenType next_type;
+
+        peek_next_token(&next_type, &next_val);
+        if (next_type == SYMBOL && strcmp(next_val, "[") == 0)
+        {
+            // varName '[' expression ']'
+            expect(IDENTIFIER, NULL); // varName
+            expect(SYMBOL, "[");
+            compile_expression();
+            expect(SYMBOL, "]");
+        }
+        else if (next_type == SYMBOL && (strcmp(next_val, "(") == 0 || strcmp(next_val, ".") == 0))
+        {
+            // subroutineCall
+            compile_subroutine_call();
+        }
+        else
+        {
+
+            expect(IDENTIFIER, NULL);
+        }
+    }
+    else if (type == SYMBOL && strcmp(val, "(") == 0)
+    {
+        // '(' expression ')'
+        expect(SYMBOL, "(");
+        compile_expression();
+        expect(SYMBOL, ")");
+    }
+    else if (type == SYMBOL && (strcmp(val, "-") == 0 || strcmp(val, "~") == 0))
+    {
+        // unaryOp term
+        expect(SYMBOL, NULL); // '-' or '~'
+        compile_term();
+    }
+    else
+    {
+        fprintf(stderr, "Error: Invalid term.\n");
+    }
+
+    fprintf(out, "</term>\n");
+}
 
 int compile_expression_list(void)
 {
@@ -478,7 +574,7 @@ int compile_expression_list(void)
     {
         xcount++;
         compile_expression();
-        while (type == SYMBOL && strcmp(val, ",") == 0)
+        while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
         {
             expect(SYMBOL, ",");
             compile_expression();
@@ -492,7 +588,12 @@ int compile_expression_list(void)
 
 // helpers
 
-void compile_subroutine_call() {}
+void compile_subroutine_call()
+{
+    /**
+     * subroutineCall: subroutineName '(' expressionList ')' | (className | varName)'.'subroutineName '(' expressionList ')'
+     */
+}
 
 bool advanceToken()
 {
@@ -576,4 +677,19 @@ bool expect(tokenType expectedType, const char *expectedValue)
 
     advanceToken();
     return true;
+}
+
+void peek_next_token(tokenType *next_type, const char **next_val)
+{
+    long pos = ftell(in); // Save current file position
+
+    char saved_token[MAX_TOKEN_LENGTH];
+    strcpy(saved_token, token_string); // Save current token string
+
+    advance_token(); // Advance to next token
+    *next_type = currentTokenType();
+    *next_val = currentTokenValue();
+
+    fseek(in, pos, SEEK_SET);          // Rewind to saved file position
+    strcpy(token_string, saved_token); // Restore token
 }
