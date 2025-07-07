@@ -14,6 +14,7 @@ bool advanceToken();
 tokenType currentTokenType();
 const char *currentTokenValue();
 bool expect(tokenType expectedType, const char *expectedValue);
+void compile_subroutine_call();
 
 void create_engine(char *in, char *out)
 {
@@ -83,6 +84,7 @@ void compile_class_var_dec(void)
     /**
      * ('static' | 'field') type varName (',' varName)* ';'
      */
+    fprintf(out, "<classVarDec>\n");
 
     expect(KEYWORD, NULL);
 
@@ -102,6 +104,8 @@ void compile_class_var_dec(void)
     }
 
     expect(SYMBOL, ";");
+
+    fprintf(out, "</classVarDec>\n");
 }
 
 void compile_subroutine(void)
@@ -239,27 +243,256 @@ void compile_subroutine_body(void)
      * doStatement: 'do' subroutineCall ';'
      * returnStatement: 'return' expression? ';'
      */
+
+    fprintf(out, "<subroutineBody>\n");
+
+    expect(SYMBOL, "{");
+    compile_var_dec();
+    compile_statements();
+
+    fprintf(out, "</subroutineBody>\n");
 }
 
-void compile_var_dec(void) {}
+void compile_var_dec(void)
+{
+    /**
+     *  varDec: 'var' type varName (',' varName) * ';'
+     */
 
-void compile_statements(void) {}
+    fprintf(out, "<varDec>\n");
 
-void compile_let(void) {}
+    expect(KEYWORD, "var");
 
-void compile_if(void) {}
+    if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
+                                          strcmp(currentTokenValue(), "char") == 0 ||
+                                          strcmp(currentTokenValue(), "boolean") == 0))
+    {
+        expect(KEYWORD, NULL);
+    }
+    expect(IDENTIFIER, NULL);
 
-void compile_while(void) {}
+    while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
+    {
+        expect(SYMBOL, ",");
+        expect(IDENTIFIER, NULL);
+    }
 
-void compile_do(void) {}
+    expect(SYMBOL, ";");
 
-void compile_return(void) {}
+    fprintf(out, "</varDec>");
+}
 
-void compile_expression(void) {}
+void compile_statements(void)
+{
+    /**
+     * statements: statement*
+     * statement: letStatement| ifStatement| whileStatement | doStatement | returnStatement
+     * letStatement: 'let' varName ('[' expression ']')? '=' expression
+     * ifStatement: 'if' '('expression ')' '{' statements '}' ('else' '{' statements '}')?
+     * whileStatement: 'while' '('expression ')' '{' statements '}'
+     * doStatement: 'do' subroutineCall ';'
+     * returnStatement: 'return' expression? ';'
+     */
+
+    tokenType ttype = currentTokenType();
+
+    const char *tval = currentTokenValue();
+
+    fprintf(out, "<statements>\n");
+
+    if (ttype == KEYWORD && strcmp(tval, "let") == 0)
+    {
+        compile_let();
+    }
+    else if (ttype == KEYWORD && strcmp(tval, "if") == 0)
+    {
+        compile_if();
+    }
+    else if (ttype == KEYWORD && strcmp(tval, "while") == 0)
+    {
+        compile_while();
+    }
+    else if (ttype == KEYWORD && strcmp(tval, "do") == 0)
+    {
+        compile_do();
+    }
+    else if (ttype == KEYWORD && strcmp(tval, "return") == 0)
+    {
+        compile_return();
+    }
+    else
+    {
+        fprintf(stderr, "Syntax Error: invalid statement\n");
+    }
+
+    fprintf(out, "</statements>\n");
+}
+
+void compile_let(void)
+{
+    /**
+     *     * letStatement: 'let' varName ('[' expression ']')? '=' expression
+     */
+
+    fprintf(out, "<letStatement>\n");
+
+    expect(KEYWORD, "let");
+    expect(IDENTIFIER, NULL);
+    if (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), "[") == 0)
+    {
+        expect(SYMBOL, "[");
+        compile_expression();
+        expect(SYMBOL, "]");
+    }
+
+    expect(SYMBOL, "=");
+    compile_expression();
+
+    fprintf(out, "</letStatement>\n");
+}
+
+void compile_if(void)
+{
+    /**
+     * ifStatement: 'if' '('expression ')' '{' statements '}' ('else' '{' statements '}')?
+     */
+    fprintf(out, "<ifStatement>\n");
+
+    expect(KEYWORD, "if");
+
+    expect(SYMBOL, "(");
+
+    compile_expression();
+
+    expect(SYMBOL, ")");
+
+    expect(SYMBOL, "{");
+
+    compile_statements();
+
+    expect(SYMBOL, "}");
+
+    if (currentTokenType() == KEYWORD && strcmp(currentTokenValue(), "else") == 0)
+    {
+        expect(KEYWORD, "else");
+        expect(SYMBOL, "{");
+        compile_statements();
+        expect(SYMBOL, "}");
+    }
+
+    fprintf(out, "</ifStatement>\n");
+}
+
+void compile_while(void)
+{
+
+    /**
+     *  whileStatement: 'while' '('expression ')' '{' statements '}'
+     */
+
+    fprintf(out, "<whileStatement> \n");
+
+    expect(KEYWORD, "while");
+    expect(SYMBOL, "(");
+    compile_expression();
+    expect(SYMBOL, ")");
+    expect(SYMBOL, "{");
+    compile_statements();
+    expect(SYMBOL, "}");
+
+    fprintf(out, "</whileStatement> \n");
+}
+
+void compile_do(void)
+{
+
+    /**
+     *  doStatement: 'do' subroutineCall ';'
+     */
+
+    fprintf(out, "<doStatement>\n");
+
+    expect(KEYWORD, "do");
+
+    compile_subroutine_call();
+
+    expect(SYMBOL, ";");
+
+    fprintf(out, "</doStatement>\n");
+}
+
+void compile_return(void)
+{
+
+    /**
+     * returnStatement: 'return' expression? ';'
+     */
+
+    fprintf(out, "<returnStatement>\n");
+
+    expect(KEYWORD, "return");
+
+    if (!(currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ";") == 0))
+    {
+        compile_expression();
+    }
+
+    fprintf(out, "</returnStatement>\n");
+}
+
+void compile_expression(void)
+{
+    /**
+     * expression: term (op term) *
+     * term: integerConstant | stringConstant | kevwordConstant | varName |
+     *  varName '[' expression ']' | '(' expression ')' | (unaryOp term) | subroutineCall
+     * subroutineCall: subroutineName '(' expressionList ')' | (className | varName)'.'subroutineName '(' expressionList ')'
+     * expressionList: (expression (',' expression) *)?
+     * unaryOp: '-' | '~'
+     * keywordConstant: 'true' | 'false' | 'null' | 'this'
+     * op: '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
+     */
+}
 
 void compile_term(void) {}
 
-int compile_expression_list(void) {}
+int compile_expression_list(void)
+{
+
+    tokenType type = currentTokenType();
+    const char *val = currentTokenValue();
+
+    int xcount = 0;
+
+    fprintf(out, "<expressionList>\n");
+
+    if (type == INT_CONST ||
+        type == STRING_CONST ||
+        (type == KEYWORD &&
+         (strcmp(val, "true") == 0 ||
+          strcmp(val, "false") == 0 ||
+          strcmp(val, "null") == 0 ||
+          strcmp(val, "this") == 0)) ||
+        type == IDENTIFIER ||
+        (type == SYMBOL && (strcmp(val, "(") == 0 || strcmp(val, "-") == 0 || strcmp(val, "~") == 0)))
+    {
+        xcount++;
+        compile_expression();
+        while (type == SYMBOL && strcmp(val, ",") == 0)
+        {
+            expect(SYMBOL, ",");
+            compile_expression();
+            xcount++;
+        }
+    }
+
+    fprintf(out, "</expressionList>\n");
+    return xcount;
+}
+
+// helpers
+
+void compile_subroutine_call() {}
 
 bool advanceToken()
 {
