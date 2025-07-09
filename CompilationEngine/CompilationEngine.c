@@ -16,6 +16,7 @@ const char *currentTokenValue();
 bool expect(tokenType expectedType, const char *expectedValue);
 void compile_subroutine_call();
 void peek_next_token(tokenType *next_type, const char **next_val);
+void compile_type(void);
 
 void create_engine(char *in, char *out)
 {
@@ -190,49 +191,26 @@ void compile_parameter_list(void)
 
     fprintf(out, "<parameterList>\n");
 
-    if (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), "(") == 0)
-    {
-        //(type):'int' |'char' | 'boolean'| className: identifier
-        if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
-                                              strcmp(currentTokenValue(), "char") == 0 ||
-                                              strcmp(currentTokenValue(), "boolean") == 0))
-        {
-            expect(KEYWORD, NULL);
-            expect(IDENTIFIER, NULL); // var name
-        }
+    tokenType type = currentTokenType();
+    const char *val = currentTokenValue();
 
-        else if (currentTokenType() == IDENTIFIER)
-        {
-            expect(IDENTIFIER, NULL); // class name
-            expect(IDENTIFIER, NULL); // var name
-        }
+    if (type == KEYWORD && (strcmp(val, "int") == 0 ||
+                            strcmp(val, "char") == 0 ||
+                            strcmp(val, "boolean") == 0) ||
+        type == IDENTIFIER)
+    {
+        compile_type();
+        expect(IDENTIFIER, NULL); // varName
 
         while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
         {
             expect(SYMBOL, ",");
-
-            //(type):'int' |'char' | 'boolean'| className: identifier
-            if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
-                                                  strcmp(currentTokenValue(), "char") == 0 ||
-                                                  strcmp(currentTokenValue(), "boolean") == 0))
-            {
-                expect(KEYWORD, NULL);    // type
-                expect(IDENTIFIER, NULL); // var name
-            }
-
-            else if (currentTokenType() == IDENTIFIER)
-            {
-                expect(IDENTIFIER, NULL); // class name
-                expect(IDENTIFIER, NULL); // var name
-            }
+            compile_type();
+            expect(IDENTIFIER, NULL);
         }
     }
 
-    if (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ")") == 0)
-    {
-    }
-
-    fprintf(out, "</parameterList>");
+    fprintf(out, "</parameterList>\n");
 }
 
 void compile_subroutine_body(void)
@@ -731,4 +709,25 @@ void peek_next_token(tokenType *next_type, const char **next_val)
 
     fseek(in, pos, SEEK_SET);          // Rewind to saved file position
     strcpy(token_string, saved_token); // Restore token
+}
+
+void compile_type(void)
+{
+    tokenType type = currentTokenType();
+    const char *val = currentTokenValue();
+
+    if (type == KEYWORD && (strcmp(val, "int") == 0 ||
+                            strcmp(val, "char") == 0 ||
+                            strcmp(val, "boolean") == 0))
+    {
+        expect(KEYWORD, NULL);
+    }
+    else if (type == IDENTIFIER)
+    {
+        expect(IDENTIFIER, NULL);
+    }
+    else
+    {
+        fprintf(stderr, "Error: Expected type but got '%s'\n", val);
+    }
 }
