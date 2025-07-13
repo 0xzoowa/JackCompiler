@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build JackAnalyzer",  // Should match preLaunchTask in launch.json
+      "label": "Build JackAnalyzer", 
       "type": "shell",
       "command": "make",
       "args": [],

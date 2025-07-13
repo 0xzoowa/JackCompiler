@@ -93,11 +93,11 @@ void write_xml(bool flag, tokenType type, FILE *out, const char *value)
 
         if (flag && value != NULL)
         {
-            fprintf(out, "<keyword> %s </keyword>\n", value);
+            fprintf(out, "<keyword>%s</keyword>\n", value);
         }
         else
         {
-            fprintf(out, "<keyword> %s </keyword>\n", keyword_type_to_string(keyword()));
+            fprintf(out, "<keyword>%s</keyword>\n", keyword_type_to_string(keyword()));
         }
     }
     else if (type == SYMBOL)
@@ -115,45 +115,45 @@ void write_xml(bool flag, tokenType type, FILE *out, const char *value)
         }
 
         if (strcmp(sym, "<") == 0)
-            fprintf(out, "<symbol> &lt; </symbol>\n");
+            fprintf(out, "<symbol>&lt;</symbol>\n");
         else if (strcmp(sym, ">") == 0)
-            fprintf(out, "<symbol> &gt; </symbol>\n");
+            fprintf(out, "<symbol>&gt;</symbol>\n");
         else if (strcmp(sym, "&") == 0)
-            fprintf(out, "<symbol> &amp; </symbol>\n");
+            fprintf(out, "<symbol>&amp;</symbol>\n");
         else
-            fprintf(out, "<symbol> %s </symbol>\n", sym);
+            fprintf(out, "<symbol>%s</symbol>\n", sym);
     }
     else if (type == IDENTIFIER)
     {
         if (flag && value != NULL)
         {
-            fprintf(out, "<identifier> %s </identifier>\n", value);
+            fprintf(out, "<identifier>%s</identifier>\n", value);
         }
         else
         {
-            fprintf(out, "<identifier> %s </identifier>\n", identifier());
+            fprintf(out, "<identifier>%s</identifier>\n", identifier());
         }
     }
     else if (type == INT_CONST)
     {
         if (flag && value != NULL)
         {
-            fprintf(out, "<integerConstant> %d </integerConstant>\n", value);
+            fprintf(out, "<integerConstant>%s</integerConstant>\n", value);
         }
         else
         {
-            fprintf(out, "<integerConstant> %d </integerConstant>\n", int_val());
+            fprintf(out, "<integerConstant>%d</integerConstant>\n", int_val());
         }
     }
     else if (type == STRING_CONST)
     {
         if (flag && value != NULL)
         {
-            fprintf(out, "<stringConstant> %s </stringConstant>\n", value);
+            fprintf(out, "<stringConstant>%s</stringConstant>\n", value);
         }
         else
         {
-            fprintf(out, "<stringConstant> %s </stringConstant>\n", string_val());
+            fprintf(out, "<stringConstant>%s</stringConstant>\n", string_val());
         }
     }
     else

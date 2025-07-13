@@ -3,6 +3,8 @@
 
 #define MAX_CHAR 256
 
+#include <stdio.h>
+
 void create_engine(char *in, char *out); //.xml
 void destroy_engine(void);
 void compile_class(void);

@@ -16,13 +16,14 @@ char path[PATH_MAX];
 
 void process(const char *in, char *outT);
 char *keyword_type_to_string(keywordType kw);
+void compile(char *in, char *out);
 
 int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
         fprintf(stderr, "Not enough arguments, please provide a filename or path.");
-        return 0;
+        return 1;
     }
     const char *input = argv[1];
 
@@ -38,10 +39,10 @@ int main(int argc, char *argv[])
         // construct output file with the specified extension
         const char *filename = remove_extension(input);
         snprintf(out, sizeof(out_file), "%sTT.xml", filename);
-        snprintf(out_file, sizeof(out_file), "%s.xml", filename);
+        snprintf(out_file, sizeof(out_file), "%s_2.xml", filename);
 
         process(input, out);
-        create_engine(out, out_file);
+        compile(out, out_file);
     }
     else
     {
@@ -62,14 +63,14 @@ int main(int argc, char *argv[])
             else
             {
                 snprintf(out, sizeof(out_file), "%s/%sTT.xml", input, remove_extension(entry->d_name));
-                snprintf(out_file, sizeof(out_file), "%s/%s.xml", input, remove_extension(entry->d_name));
+                snprintf(out_file, sizeof(out_file), "%s/%s_2.xml", input, remove_extension(entry->d_name));
                 process(path, out);
-                create_engine(out, out_file);
+                compile(out, out_file);
             }
         }
         closedir(dir);
     }
-    return 1;
+    return 0;
 }
 
 void process(const char *in, char *outT)
@@ -95,4 +96,10 @@ void process(const char *in, char *outT)
         }
     }
     tokenizer_destroy();
+}
+
+void compile(char *in, char *out)
+{
+    create_engine(in, out);
+    destroy_engine();
 }

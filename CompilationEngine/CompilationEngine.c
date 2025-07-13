@@ -8,7 +8,7 @@
 
 static FILE *in = NULL;
 static FILE *out = NULL;
-static token_string[MAX_CHAR];
+static char token_string[MAX_CHAR];
 
 bool advance_token();
 tokenType currentTokenType();
@@ -18,23 +18,23 @@ void compile_subroutine_call();
 void peek_next_token(tokenType *next_type, const char **next_val);
 void compile_type(void);
 
-void create_engine(char *in, char *out)
+void create_engine(char *input, char *output)
 {
-    in = fopen(in, "r");
+    in = fopen(input, "r");
     if (in == NULL)
     {
-        fprintf(stderr, "Error: Cannot open file %s\n", in);
+        fprintf(stderr, "Error: Cannot open file %s\n", input);
         exit(EXIT_FAILURE);
     }
 
-    out = fopen(out, "w");
+    out = fopen(output, "w");
     if (out == NULL)
     {
         fclose(in);
-        fprintf(stderr, "Error: Could not create output file %s\n", out);
+        fprintf(stderr, "Error: Could not create output file %s\n", output);
         exit(EXIT_FAILURE);
     }
-    advanceToken();
+    advance_token();
     compile_class();
 }
 void destroy_engine(void)
@@ -194,9 +194,9 @@ void compile_parameter_list(void)
     tokenType type = currentTokenType();
     const char *val = currentTokenValue();
 
-    if (type == KEYWORD && (strcmp(val, "int") == 0 ||
-                            strcmp(val, "char") == 0 ||
-                            strcmp(val, "boolean") == 0) ||
+    if ((type == KEYWORD && (strcmp(val, "int") == 0 ||
+                             strcmp(val, "char") == 0 ||
+                             strcmp(val, "boolean") == 0)) ||
         type == IDENTIFIER)
     {
         compile_type();
@@ -221,7 +221,7 @@ void compile_subroutine_body(void)
      * varDec: 'var' type varName (',' varName) * ';'
      * statements: statement*
      * statement: letStatement| ifStatement| whileStatement | doStatement | returnStatement
-     * letStatement: 'let' varName ('[' expression ']')? '=' expression
+     * letStatement: 'let' varName ('[' expression ']')? '=' expression ';'
      * ifStatement: 'if' '('expression ')' '{' statements '}' ('else' '{' statements '}')?
      * whileStatement: 'while' '('expression ')' '{' statements '}'
      * doStatement: 'do' subroutineCall ';'
@@ -232,7 +232,11 @@ void compile_subroutine_body(void)
 
     expect(SYMBOL, "{");
     compile_var_dec();
-    compile_statements();
+    while (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "let") == 0 || strcmp(currentTokenValue(), "if") == 0 || strcmp(currentTokenValue(), "while") == 0 || strcmp(currentTokenValue(), "do") == 0 || strcmp(currentTokenValue(), "return") == 0))
+    {
+        compile_statements();
+    }
+
     expect(SYMBOL, "}");
 
     fprintf(out, "</subroutineBody>\n");
@@ -246,23 +250,34 @@ void compile_var_dec(void)
 
     fprintf(out, "<varDec>\n");
 
-    expect(KEYWORD, "var");
-
-    if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
-                                          strcmp(currentTokenValue(), "char") == 0 ||
-                                          strcmp(currentTokenValue(), "boolean") == 0))
+    while (currentTokenType() == KEYWORD && strcmp(currentTokenValue(), "var") == 0)
     {
-        expect(KEYWORD, NULL);
-    }
-    expect(IDENTIFIER, NULL);
+        expect(KEYWORD, "var");
 
-    while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
-    {
-        expect(SYMBOL, ",");
-        expect(IDENTIFIER, NULL);
-    }
+        if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
+                                              strcmp(currentTokenValue(), "char") == 0 ||
+                                              strcmp(currentTokenValue(), "boolean") == 0))
+        {
+            expect(KEYWORD, NULL);
+        } // int, char, boolean
+        else if (currentTokenType() == IDENTIFIER)
+        {
+            expect(IDENTIFIER, NULL); // class name
+        }
+        else
+        {
+            fprintf(stderr, "Error: expected type int, char, boolean or classname, got %s instead", currentTokenValue());
+        }
+        expect(IDENTIFIER, NULL); // varname
 
-    expect(SYMBOL, ";");
+        while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
+        {
+            expect(SYMBOL, ",");
+            expect(IDENTIFIER, NULL);
+        }
+
+        expect(SYMBOL, ";");
+    }
 
     fprintf(out, "</varDec>");
 }
@@ -333,6 +348,8 @@ void compile_let(void)
     expect(SYMBOL, "=");
     compile_expression();
 
+    expect(SYMBOL, ";");
+
     fprintf(out, "</letStatement>\n");
 }
 
@@ -353,7 +370,10 @@ void compile_if(void)
 
     expect(SYMBOL, "{");
 
-    compile_statements();
+    while (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "let") == 0 || strcmp(currentTokenValue(), "if") == 0 || strcmp(currentTokenValue(), "while") == 0 || strcmp(currentTokenValue(), "do") == 0 || strcmp(currentTokenValue(), "return") == 0))
+    {
+        compile_statements();
+    }
 
     expect(SYMBOL, "}");
 
@@ -382,7 +402,10 @@ void compile_while(void)
     compile_expression();
     expect(SYMBOL, ")");
     expect(SYMBOL, "{");
-    compile_statements();
+    while (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "let") == 0 || strcmp(currentTokenValue(), "if") == 0 || strcmp(currentTokenValue(), "while") == 0 || strcmp(currentTokenValue(), "do") == 0 || strcmp(currentTokenValue(), "return") == 0))
+    {
+        compile_statements();
+    }
     expect(SYMBOL, "}");
 
     fprintf(out, "</whileStatement> \n");
@@ -589,16 +612,16 @@ void compile_subroutine_call()
 
     expect(IDENTIFIER, NULL);
 
-    const char *nv;
-    tokenType nt;
-    peek_next_token(&nt, &nv);
-    if (nt == SYMBOL && strcmp(nv, "(") == 0)
+    // const char *nv;
+    // tokenType nt;
+    // peek_next_token(&nt, &nv);
+    if (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), "(") == 0)
     {
         expect(SYMBOL, "(");
         compile_expression_list();
         expect(SYMBOL, ")");
     }
-    else if (nt == SYMBOL && strcmp(nv, ".") == 0)
+    else if (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ".") == 0)
     {
         expect(SYMBOL, ".");
         expect(IDENTIFIER, NULL);
@@ -670,6 +693,20 @@ const char *currentTokenValue()
     size_t len = end - start;
     strncpy(value, start, len);
     value[len] = '\0';
+
+    // Decode XML entities
+    if (strcmp(value, "&lt;") == 0)
+    {
+        strcpy(value, "<");
+    }
+    else if (strcmp(value, "&gt;") == 0)
+    {
+        strcpy(value, ">");
+    }
+    else if (strcmp(value, "&amp;") == 0)
+    {
+        strcpy(value, "&");
+    }
     return value;
 }
 
@@ -692,23 +729,23 @@ bool expect(tokenType expectedType, const char *expectedValue)
 
     write_xml(true, actualType, out, actualValue);
 
-    advanceToken();
+    advance_token();
     return true;
 }
 
 void peek_next_token(tokenType *next_type, const char **next_val)
 {
-    long pos = ftell(in); // Save current file position
+    long pos = ftell(in); // save current file position
 
     char saved_token[MAX_TOKEN_LENGTH];
-    strcpy(saved_token, token_string); // Save current token string
+    strcpy(saved_token, token_string); // save current token string
 
-    advance_token(); // Advance to next token
+    advance_token(); // advance to next token
     *next_type = currentTokenType();
     *next_val = currentTokenValue();
 
-    fseek(in, pos, SEEK_SET);          // Rewind to saved file position
-    strcpy(token_string, saved_token); // Restore token
+    fseek(in, pos, SEEK_SET);          // rewind to saved file position
+    strcpy(token_string, saved_token); // restore token
 }
 
 void compile_type(void)
