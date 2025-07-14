@@ -83,6 +83,8 @@ void compile_class(void)
         compile_subroutine();
     }
 
+    expect(SYMBOL, "}");
+
     fprintf(out, "</class>\n");
 }
 
@@ -232,10 +234,7 @@ void compile_subroutine_body(void)
 
     expect(SYMBOL, "{");
     compile_var_dec();
-    while (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "let") == 0 || strcmp(currentTokenValue(), "if") == 0 || strcmp(currentTokenValue(), "while") == 0 || strcmp(currentTokenValue(), "do") == 0 || strcmp(currentTokenValue(), "return") == 0))
-    {
-        compile_statements();
-    }
+    compile_statements();
 
     expect(SYMBOL, "}");
 
@@ -248,10 +247,9 @@ void compile_var_dec(void)
      *  varDec: 'var' type varName (',' varName) * ';'
      */
 
-    fprintf(out, "<varDec>\n");
-
     while (currentTokenType() == KEYWORD && strcmp(currentTokenValue(), "var") == 0)
     {
+        fprintf(out, "<varDec>\n");
         expect(KEYWORD, "var");
 
         if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
@@ -259,7 +257,7 @@ void compile_var_dec(void)
                                               strcmp(currentTokenValue(), "boolean") == 0))
         {
             expect(KEYWORD, NULL);
-        } // int, char, boolean
+        }
         else if (currentTokenType() == IDENTIFIER)
         {
             expect(IDENTIFIER, NULL); // class name
@@ -268,6 +266,7 @@ void compile_var_dec(void)
         {
             fprintf(stderr, "Error: expected type int, char, boolean or classname, got %s instead", currentTokenValue());
         }
+
         expect(IDENTIFIER, NULL); // varname
 
         while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
@@ -277,9 +276,8 @@ void compile_var_dec(void)
         }
 
         expect(SYMBOL, ";");
+        fprintf(out, "</varDec>\n");
     }
-
-    fprintf(out, "</varDec>");
 }
 
 void compile_statements(void)
@@ -294,35 +292,36 @@ void compile_statements(void)
      * returnStatement: 'return' expression? ';'
      */
 
-    tokenType ttype = currentTokenType();
-
-    const char *tval = currentTokenValue();
-
     fprintf(out, "<statements>\n");
 
-    if (ttype == KEYWORD && strcmp(tval, "let") == 0)
+    while (currentTokenType() == KEYWORD)
     {
-        compile_let();
-    }
-    else if (ttype == KEYWORD && strcmp(tval, "if") == 0)
-    {
-        compile_if();
-    }
-    else if (ttype == KEYWORD && strcmp(tval, "while") == 0)
-    {
-        compile_while();
-    }
-    else if (ttype == KEYWORD && strcmp(tval, "do") == 0)
-    {
-        compile_do();
-    }
-    else if (ttype == KEYWORD && strcmp(tval, "return") == 0)
-    {
-        compile_return();
-    }
-    else
-    {
-        fprintf(stderr, "Syntax Error: invalid statement\n");
+        const char *tval = currentTokenValue();
+
+        if (strcmp(tval, "let") == 0)
+        {
+            compile_let();
+        }
+        else if (strcmp(tval, "if") == 0)
+        {
+            compile_if();
+        }
+        else if (strcmp(tval, "while") == 0)
+        {
+            compile_while();
+        }
+        else if (strcmp(tval, "do") == 0)
+        {
+            compile_do();
+        }
+        else if (strcmp(tval, "return") == 0)
+        {
+            compile_return();
+        }
+        else
+        {
+            break; // end of statements block
+        }
     }
 
     fprintf(out, "</statements>\n");
@@ -370,10 +369,7 @@ void compile_if(void)
 
     expect(SYMBOL, "{");
 
-    while (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "let") == 0 || strcmp(currentTokenValue(), "if") == 0 || strcmp(currentTokenValue(), "while") == 0 || strcmp(currentTokenValue(), "do") == 0 || strcmp(currentTokenValue(), "return") == 0))
-    {
-        compile_statements();
-    }
+    compile_statements();
 
     expect(SYMBOL, "}");
 
@@ -402,10 +398,7 @@ void compile_while(void)
     compile_expression();
     expect(SYMBOL, ")");
     expect(SYMBOL, "{");
-    while (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "let") == 0 || strcmp(currentTokenValue(), "if") == 0 || strcmp(currentTokenValue(), "while") == 0 || strcmp(currentTokenValue(), "do") == 0 || strcmp(currentTokenValue(), "return") == 0))
-    {
-        compile_statements();
-    }
+    compile_statements();
     expect(SYMBOL, "}");
 
     fprintf(out, "</whileStatement> \n");
