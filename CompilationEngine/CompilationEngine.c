@@ -105,10 +105,14 @@ void compile_class_var_dec(void)
                                           strcmp(currentTokenValue(), "char") == 0 ||
                                           strcmp(currentTokenValue(), "boolean") == 0))
     {
-        expect(KEYWORD, NULL);
+        expect(KEYWORD, NULL); // primitive types
+    }
+    else if (currentTokenType() == IDENTIFIER)
+    {
+        expect(IDENTIFIER, NULL); // class type
     }
 
-    expect(IDENTIFIER, NULL);
+    expect(IDENTIFIER, NULL); // var name
 
     while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
     {
@@ -320,7 +324,7 @@ void compile_statements(void)
         }
         else
         {
-            break; // end of statements block
+            break;
         }
     }
 
@@ -605,9 +609,6 @@ void compile_subroutine_call()
 
     expect(IDENTIFIER, NULL);
 
-    // const char *nv;
-    // tokenType nt;
-    // peek_next_token(&nt, &nv);
     if (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), "(") == 0)
     {
         expect(SYMBOL, "(");
