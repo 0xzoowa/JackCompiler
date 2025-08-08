@@ -24,20 +24,22 @@ typedef struct
     int varCount;                        // local segment
 } SymbolTable;
 
-void symbol_table_init(SymbolTable *table);
+void symbol_table_init();
 
 void deallocate_symbol_table();
 
-void reset(SymbolTable *table);
+void reset();
 
-void define(SymbolTable *table, const char *name, const char *type, const char *kind);
+void define(const char *name, const char *type, const char *kind);
 
-int varCount(SymbolTable *table, const char *kind);
+int varCount(const char *kind);
 
-const char *kindOf(SymbolTable *table, const char *name);
+const char *kindOf(const char *name);
 
-const char *typeOf(SymbolTable *table, const char *name);
+const char *typeOf(const char *name);
 
-int indexOf(SymbolTable *table, const char *name);
+int indexOf(const char *name);
+
+void print_symbol();
 
 #endif
