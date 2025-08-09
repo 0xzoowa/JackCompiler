@@ -1,6 +1,7 @@
 #include "CompilationEngine.h"
 #include "../JackTokenizer/JackTokenizer.h"
 #include "../Utilities/Utils.h"
+#include "../SymbolTable/SymbolTable.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -90,6 +91,10 @@ void compile_class(void)
 
 void compile_class_var_dec(void)
 {
+
+    const char *kind;
+    const char *type;
+    const char *name;
     /**
      * ('static' | 'field') type varName (',' varName)* ';'
      */
@@ -98,6 +103,7 @@ void compile_class_var_dec(void)
     if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "static") == 0 ||
                                           strcmp(currentTokenValue(), "field") == 0))
     {
+        kind = currentTokenValue();
         expect(KEYWORD, NULL);
     }
 
@@ -105,18 +111,25 @@ void compile_class_var_dec(void)
                                           strcmp(currentTokenValue(), "char") == 0 ||
                                           strcmp(currentTokenValue(), "boolean") == 0))
     {
+        type = currentTokenValue();
         expect(KEYWORD, NULL); // primitive types
     }
     else if (currentTokenType() == IDENTIFIER)
     {
+        type = currentTokenValue();
         expect(IDENTIFIER, NULL); // class type
     }
 
+    name = currentTokenValue();
+    define(name, type, kind);
     expect(IDENTIFIER, NULL); // var name
 
     while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
     {
         expect(SYMBOL, ",");
+
+        name = currentTokenValue();
+        define(name, type, kind);
         expect(IDENTIFIER, NULL);
     }
 
@@ -195,23 +208,61 @@ void compile_parameter_list(void)
      *
      */
 
+    const char *kind = "arg";
+    const char *type;
+    const char *name;
+
     fprintf(out, "<parameterList>\n");
 
-    tokenType type = currentTokenType();
-    const char *val = currentTokenValue();
-
-    if ((type == KEYWORD && (strcmp(val, "int") == 0 ||
-                             strcmp(val, "char") == 0 ||
-                             strcmp(val, "boolean") == 0)) ||
-        type == IDENTIFIER)
+    if ((currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
+                                           strcmp(currentTokenValue(), "char") == 0 ||
+                                           strcmp(currentTokenValue(), "boolean") == 0)) ||
+        currentTokenType() == IDENTIFIER)
     {
-        compile_type();
+        // compile_type();
+
+        if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
+                                              strcmp(currentTokenValue(), "char") == 0 ||
+                                              strcmp(currentTokenValue(), "boolean") == 0))
+        {
+            type = currentTokenValue();
+            expect(KEYWORD, NULL);
+        }
+        else if (currentTokenType() == IDENTIFIER)
+        {
+            type = currentTokenValue();
+            expect(IDENTIFIER, NULL);
+        }
+        else
+        {
+            fprintf(stderr, "Error: Expected type but got '%s'\n", currentTokenValue());
+        }
+        name = currentTokenValue();
+        define(name, type, kind);
         expect(IDENTIFIER, NULL); // varName
 
         while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
         {
             expect(SYMBOL, ",");
-            compile_type();
+            // compile_type();
+            if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
+                                                  strcmp(currentTokenValue(), "char") == 0 ||
+                                                  strcmp(currentTokenValue(), "boolean") == 0))
+            {
+                type = currentTokenValue();
+                expect(KEYWORD, NULL);
+            }
+            else if (currentTokenType() == IDENTIFIER)
+            {
+                type = currentTokenValue();
+                expect(IDENTIFIER, NULL);
+            }
+            else
+            {
+                fprintf(stderr, "Error: Expected type but got '%s'\n", currentTokenValue());
+            }
+            name = currentTokenValue();
+            define(name, type, kind);
             expect(IDENTIFIER, NULL);
         }
     }
@@ -250,20 +301,28 @@ void compile_var_dec(void)
     /**
      *  varDec: 'var' type varName (',' varName) * ';'
      */
+    const char *name;
+    const char *kind;
+    const char *type;
 
     while (currentTokenType() == KEYWORD && strcmp(currentTokenValue(), "var") == 0)
     {
+
         fprintf(out, "<varDec>\n");
+
+        kind = currentTokenValue();
         expect(KEYWORD, "var");
 
         if (currentTokenType() == KEYWORD && (strcmp(currentTokenValue(), "int") == 0 ||
                                               strcmp(currentTokenValue(), "char") == 0 ||
                                               strcmp(currentTokenValue(), "boolean") == 0))
         {
+            type = currentTokenValue();
             expect(KEYWORD, NULL);
         }
         else if (currentTokenType() == IDENTIFIER)
         {
+            type = currentTokenValue();
             expect(IDENTIFIER, NULL); // class name
         }
         else
@@ -271,11 +330,15 @@ void compile_var_dec(void)
             fprintf(stderr, "Error: expected type int, char, boolean or classname, got %s instead", currentTokenValue());
         }
 
+        name = currentTokenValue();
+        define(name, type, kind);
         expect(IDENTIFIER, NULL); // varname
 
         while (currentTokenType() == SYMBOL && strcmp(currentTokenValue(), ",") == 0)
         {
             expect(SYMBOL, ",");
+            name = currentTokenValue();
+            define(name, type, kind);
             expect(IDENTIFIER, NULL);
         }
 
@@ -744,16 +807,16 @@ void peek_next_token(tokenType *next_type, const char **next_val)
 
 void compile_type(void)
 {
-    tokenType type = currentTokenType();
+    tokenType ttype = currentTokenType();
     const char *val = currentTokenValue();
 
-    if (type == KEYWORD && (strcmp(val, "int") == 0 ||
-                            strcmp(val, "char") == 0 ||
-                            strcmp(val, "boolean") == 0))
+    if (ttype == KEYWORD && (strcmp(val, "int") == 0 ||
+                             strcmp(val, "char") == 0 ||
+                             strcmp(val, "boolean") == 0))
     {
         expect(KEYWORD, NULL);
     }
-    else if (type == IDENTIFIER)
+    else if (ttype == IDENTIFIER)
     {
         expect(IDENTIFIER, NULL);
     }
